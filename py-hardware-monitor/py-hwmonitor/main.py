@@ -66,25 +66,37 @@ def get_cpu_name():
 
 # GPU info
 def get_gpu_usage():
-    result = subprocess.run(
+    # DEBUG
+    try:
+        result = subprocess.run(
         ["nvidia-smi", # only works with NVIDIA GPUs
          "--query-gpu=name,utilization.gpu,memory.used,memory.total,temperature.gpu",
          "--format=csv,noheader,nounits"],
         capture_output=True, text=True
     )
-    line = result.stdout.strip()
-    if not line:
-        return None
-    gpus = []
-    for l in line.split("\n"):
-        parts = [x.strip() for x in l.split(",")]
-        name = parts[0]
-        util = int(parts[1])
-        mem_used_gb = int(parts[2]) / 1024
-        mem_total_gb = int(parts[3]) / 1024
-        temp = int(parts[4])
-        gpus.append((name, util, mem_used_gb, mem_total_gb, temp))
-    return gpus
+        line = result.stdout.strip()
+        if not line:
+            return None
+        gpus = []
+        for l in line.split("\n"):
+            parts = [x.strip() for x in l.split(",")]
+            name = parts[0]
+            util = int(parts[1])
+            mem_used_gb = int(parts[2]) / 1024
+            mem_total_gb = int(parts[3]) / 1024
+            temp = int(parts[4])
+            gpus.append((name, util, mem_used_gb, mem_total_gb, temp))
+        return gpus
+    
+    except:
+        gpu = False
+        print("GPU incompatible."
+        "\nContinuing without GPU monitoring.", end="", flush=True)
+        for _ in range(6):
+            time.sleep(1)
+            print(".", end="", flush=True)
+        os.system("cls" if os.name == "nt" else "clear")
+        return gpu
 
 def main():
     os.system("cls" if os.name == "nt" else "clear")
@@ -125,9 +137,14 @@ def main():
     while True:
         cpu = psutil.cpu_percent(interval=0.5)
         ram = psutil.virtual_memory()
-        gpus = get_gpu_usage()
+
+        # if gpus != False:
+        #     gpus = get_gpu_usage()
+        # else:
+        #     pass
     
-        if gpus:
+        if gpus != False:
+            gpus = get_gpu_usage()
             for i, (name, util, mem_used_gb, mem_total_gb, temp) in enumerate(gpus):
                 lines = [
                     f"GPU {i}: {util:7d}% {temp:4d}°C",
@@ -136,11 +153,16 @@ def main():
                     f"RAM: {ram.used / (1024**3):7.2f} GB / {ram.total / (1024**3):.2f} GB",
                 ]
         else:
-            lines = ["GPU info not available"]
-            log("GPU info not available.")
+            lines = [
+                f"CPU: {cpu:9.1f}%",
+                f"RAM: {ram.used / (1024**3):7.2f} GB / {ram.total / (1024**3):.2f} GB",
+            ]
         
         # Continuous logging
-        log(f"GPU {i}: {util}%, {temp}°C|CPU: {cpu:.0f}%|VRAM: {mem_used_gb:.2f} GB/{mem_total_gb:.2f} GB|RAM: {ram.used / (1024**3):.2f} GB/{ram.total / (1024**3):.2f} GB")
+        if gpus != False:
+            log(f"GPU {i}: {util}%, {temp}°C|CPU: {cpu:.0f}%|VRAM: {mem_used_gb:.2f} GB/{mem_total_gb:.2f} GB|RAM: {ram.used / (1024**3):.2f} GB/{ram.total / (1024**3):.2f} GB")
+        else:
+            log(f"CPU: {cpu:.0f}%|RAM: {ram.used / (1024**3):.2f} GB/{ram.total / (1024**3):.2f} GB")
 
         # Overwrite previous lines
         if prev_lines:
@@ -177,3 +199,5 @@ if __name__ == "__main__":
             f"Log finished at {final_timestamp} on {timestamp_d}.\n"
             f"File saved to {path}"
         )
+        # Print average CPU, average ram etc after however long program ran
+        # Print file saved to location
