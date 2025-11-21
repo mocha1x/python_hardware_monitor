@@ -10,7 +10,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "py-hardware-monitor = py-hwmonitor.main:main",
+            "py-hw-monitor = py-hwmonitor.__main__:main",
         ]
     },
     author="mocha1x",
